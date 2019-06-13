@@ -6,7 +6,10 @@ import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.SmsManager;
@@ -38,7 +41,8 @@ public class MainActivity extends AppCompatActivity {
         editText_phone = findViewById(R.id.field1_result);
         editText_message = findViewById(R.id.field2_result);
         textView = findViewById(R.id.ready_text);
-
+        
+        onRequestPermissionResult();
         loadData();
         listenForChangeInField(editText_phone,PHONE_NUMBER); // check for changes in phone number
         listenForChangeInField(editText_message, MESSAGE); // check for changes in message
@@ -118,4 +122,28 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         unregisterReceiver(br);
     }
+
+    public void onRequestPermissionResult() {
+        int PERMISSION_ALL = 1;
+
+        String[] permissions = {Manifest.permission.READ_PHONE_STATE,
+                Manifest.permission.PROCESS_OUTGOING_CALLS, Manifest.permission.SEND_SMS};
+
+        if (!checkPermissionsHelper(permissions)) {
+            ActivityCompat.requestPermissions(this, permissions, PERMISSION_ALL);
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS)) {
+            }
+        }
+    }
+
+
+    public boolean checkPermissionsHelper(String... permissions){
+        for (String permission : permissions) {
+            if (ActivityCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

@@ -1,25 +1,41 @@
 package com.example.myspecialstalker;
 
+import android.arch.lifecycle.MutableLiveData;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.widget.Toast;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 
-
+import static com.example.myspecialstalker.MainActivity.CHANEL_ID;
 
 public class MyBroadcastReceiver extends BroadcastReceiver {
+    private final MutableLiveData<String> broadcastLiveData = new MutableLiveData<>();
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (action != null && action.equals(Intent.ACTION_NEW_OUTGOING_CALL)) {
-            String number = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER);
-            Toast.makeText(context, "tel:" + number, Toast.LENGTH_LONG).show();
-            Intent i = new Intent(context, MainActivity.class);
-            i.putExtra("Phone number", number);
-            context.startActivity(i);
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANEL_ID)
+                    .setSmallIcon(R.drawable.paper_plane)
+                    .setContentTitle("Message Status")
+                    .setContentText("Sending...")
+                    .setPriority(NotificationCompat.PRIORITY_MAX);
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+            notificationManager.notify(2393, builder.build());
+
+//            Intent i = new Intent(context, MainActivity.class);
+//            String number = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER);
+//            i.putExtra("Phone number", number);
+//            context.startActivity(i);
+
+            broadcastLiveData.postValue(intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER));
         }
     }
 
+    public MutableLiveData<String> getBroadcastLiveData(){
+        return broadcastLiveData;
     }
+
+}
 

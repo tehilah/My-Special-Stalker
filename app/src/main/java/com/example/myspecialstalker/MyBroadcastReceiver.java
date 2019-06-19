@@ -1,6 +1,5 @@
 package com.example.myspecialstalker;
 
-import android.arch.lifecycle.MutableLiveData;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,7 +9,7 @@ import android.support.v4.app.NotificationManagerCompat;
 import static com.example.myspecialstalker.MainActivity.CHANEL_ID;
 
 public class MyBroadcastReceiver extends BroadcastReceiver {
-    private final MutableLiveData<String> broadcastLiveData = new MutableLiveData<>();
+
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -20,22 +19,19 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
                     .setSmallIcon(R.drawable.paper_plane)
                     .setContentTitle("Message Status")
                     .setContentText("Sending...")
-                    .setPriority(NotificationCompat.PRIORITY_MAX);
+                    .setPriority(NotificationCompat.PRIORITY_HIGH);
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             notificationManager.notify(2393, builder.build());
 
-//            Intent i = new Intent(context, MainActivity.class);
-//            String number = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER);
-//            i.putExtra("Phone number", number);
-//            context.startActivity(i);
+            Intent i = new Intent(context, MainActivity.class);
+            String number = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER);
+            i.putExtra("Phone number", number);
+            context.startActivity(i);
 
-            broadcastLiveData.postValue(intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER));
+
         }
     }
 
-    public MutableLiveData<String> getBroadcastLiveData(){
-        return broadcastLiveData;
-    }
 
 }
 

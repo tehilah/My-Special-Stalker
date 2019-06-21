@@ -56,38 +56,21 @@ public class MainActivity extends AppCompatActivity {
         editText_message = findViewById(R.id.field2_result);
         textView = findViewById(R.id.ready_text);
 
-        initChannels(this);
         onRequestPermissionResult();
         loadData();
         listenForChangeInField(editText_phone,PHONE_NUMBER); // check for changes in phone number
         listenForChangeInField(editText_message, MESSAGE); // check for changes in message
         checkIfAppIsReady(); // app is ready when both fields are filled in
         InitBroadcastReceiver();
-        sendMessage();
+        br.setMessage(editText_message.getText().toString());
+        br.setMyNumber(editText_phone.getText().toString());
 
-
-
-
-    }
-    public void initChannels(Context context) {
-        if (Build.VERSION.SDK_INT < 26) {
-            return;
-        }
-        NotificationManager notificationManager =
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        NotificationChannel channel = new NotificationChannel(CHANEL_ID,
-                "Channel name",
-                NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription("Message status");
-        notificationManager.createNotificationChannel(channel);
     }
 
     private void InitBroadcastReceiver() {
         IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         filter.addAction(Intent.ACTION_NEW_OUTGOING_CALL);
         filter.addAction("android.intent.action.PHONE_STATE");
-//        filter.addAction(SENT);
-//        filter.addAction(DELIVERED);
         registerReceiver(br, filter, Manifest.permission.PROCESS_OUTGOING_CALLS,null);
     }
 
@@ -140,30 +123,6 @@ public class MainActivity extends AppCompatActivity {
         editText_message.setText(message);
     }
 
-    public void sendMessage(){
-        String number = getIntent().getStringExtra("Phone number");
-
-        final Intent sentIntent = new Intent(this, MyService.class);
-        sentIntent.setAction(SENT);
-        sentIntent.putExtra(SENT, SENT);
-        final PendingIntent sentPI = PendingIntent.getService(this, 0, sentIntent, 0);
-
-        final Intent deliverIntent = new Intent(this, MyService.class);
-        sentIntent.setAction(DELIVERED);
-        deliverIntent.putExtra(DELIVERED, DELIVERED);
-        final PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0,
-                deliverIntent, 0);
-
-        if(number != null){
-            String message = editText_message.getText().toString();
-            SmsManager sms = SmsManager.getDefault();
-            sms.sendTextMessage(editText_phone.getText().toString(), null, message+" "+number, sentPI, deliveredPI);
-            startService(sentIntent);
-            startService(deliverIntent);
-        }
-
-
-    }
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -194,5 +153,3 @@ public class MainActivity extends AppCompatActivity {
 
 
 }
-
-//todo: shutdown channel. maybe shutdown service
